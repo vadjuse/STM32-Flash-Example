@@ -71,26 +71,26 @@ void flash_program(uint8_t page_number, uint16_t page_byte, uint16_t Data);
 /* USER CODE BEGIN 0 */
 void portA_init()
 {
-	  RCC->AHBENR  |= RCC_AHBENR_GPIOAEN;//тактирование порта А
-	  GPIOA->MODER |= 1 << GPIO_MODER_MODER5_Pos;//пин А5 выход
-	  GPIOA->ODR   |= GPIO_PIN_5;
+	  RCC->AHBENR  |= RCC_AHBENR_GPIOAEN;			// Port A clock enable
+	  GPIOA->MODER |= 1 << GPIO_MODER_MODER5_Pos;		// Pin5 (Green LED)i n output mode
+	  GPIOA->ODR   |= GPIO_PIN_5;				// LED Set
 
 	  GPIOA->MODER |= 0b10 << GPIO_MODER_MODER2_Pos
-			  	   |  0b10 << GPIO_MODER_MODER3_Pos; //пины 2 и 3 в режиме альтернативной функции
+		       |  0b10 << GPIO_MODER_MODER3_Pos; 	// Alternate Function
 	  GPIOA->AFR[0]|= 0b111<< GPIO_AFRL_AFRL2_Pos
-			  	   |  0b111<< GPIO_AFRL_AFRL3_Pos; //пины 2 и 3 USART2
+		       |  0b111<< GPIO_AFRL_AFRL3_Pos; 		// PA2 PA3 USART2 TX & RX
 }
 void USART_init()
 {
 	//APBCLK - 32 MHz
-	RCC->APB1ENR |= RCC_APB1ENR_USART2EN;//тактирование usart2
-	USART2->BRR = 3333; //baud 9600
-	USART2->CR1|= USART_CR1_TE
-			   |  USART_CR1_RXNEIE
-			   |  USART_CR1_RE
-			   |  USART_CR1_UE; //включение усарта2, приема, передачи и прерывания по приходу байта
+	RCC->APB1ENR |= RCC_APB1ENR_USART2EN;			// USART2 clock enable
+	USART2->BRR = 3333; 					//baud 9600				
+	USART2->CR1|= USART_CR1_TE				// Transmite enable
+			   |  USART_CR1_RXNEIE			// Rx not empty interrupt enable
+			   |  USART_CR1_RE			// Rx enable
+			   |  USART_CR1_UE; 			// USART2 enable
 
-	NVIC_EnableIRQ(USART2_IRQn);
+	NVIC_EnableIRQ(USART2_IRQn);				// IRQ enable
 }
 
 void USART2_IRQHandler()
@@ -107,7 +107,6 @@ void USART2_IRQHandler()
 			flash_erase(31);
 			line_to_flash();
 			line_init();
-
 		}
 	}
 }
@@ -136,18 +135,17 @@ void flash_unlock()
 	//Unlocking Combination
 	FLASH->KEYR = 0x45670123;
 	FLASH->KEYR = 0xCDEF89AB;
-
 }
 
 void flash_erase(uint8_t page_number) //page number from 0 to 31, but be careful
 {
-	//Erase of flash page
-	while((FLASH->SR & FLASH_SR_BSY) !=  0); //wait while flash is busy
-	FLASH->CR |= FLASH_CR_PER; //Page Erase
+	// Erase of flash page
+	while((FLASH->SR & FLASH_SR_BSY) !=  0); 	//wait while flash is busy
+	FLASH->CR |= FLASH_CR_PER; 			//Page Erase
 	uint32_t Address =  0x08000000 + 0x800*page_number;
-	FLASH->AR = Address;    //Adress of page to erase
-	FLASH->CR |= FLASH_CR_STRT;//Start of Operation
-	while((FLASH->SR & FLASH_SR_BSY) !=  0); //wait while flash is busy
+	FLASH->AR = Address;    			//Adress of page to erase
+	FLASH->CR |= FLASH_CR_STRT;			//Start of Operation
+	while((FLASH->SR & FLASH_SR_BSY) !=  0); 	//wait while flash is busy
 	if((FLASH->SR & FLASH_SR_EOP) != 0)
 	{
 		FLASH->SR |= FLASH_SR_EOP; //reset of EOP flag
@@ -158,17 +156,17 @@ void flash_erase(uint8_t page_number) //page number from 0 to 31, but be careful
 void flash_program(uint8_t page_number, uint16_t page_byte, uint16_t Data)
 {
 	//Programming of previously Erased memory
-	while((FLASH->SR & FLASH_SR_BSY) !=  0); //wait while flash is busy
-	FLASH->CR &= ~FLASH_CR_PER; //Page Erase
-	FLASH->CR |= FLASH_CR_PG; //Page Programming operation
+	while((FLASH->SR & FLASH_SR_BSY) !=  0); 	//wait while flash is busy
+	FLASH->CR &= ~FLASH_CR_PER; 			//Page Erase
+	FLASH->CR |= FLASH_CR_PG; 			//Page Programming operation
 	uint32_t Address = 0x08000000 + 0x800*page_number + page_byte;
 	//this code copied from FLASH_WriteHalfWord
-	*(__IO uint16_t*)Address = (uint16_t)Data;  //Programming 16-bit HalfWord Data to Flash
+	*(__IO uint16_t*)Address = (uint16_t)Data;  	//Programming 16-bit HalfWord Data to Flash
 	///////////////////////////////////////////
-	while((FLASH->SR & FLASH_SR_BSY) !=  0); //wait while flash is busy
+	while((FLASH->SR & FLASH_SR_BSY) !=  0); 	//wait while flash is busy
 	if((FLASH->SR & FLASH_SR_EOP) != 0)
 	{
-		FLASH->SR |= FLASH_SR_EOP; //reset of EOP flag
+		FLASH->SR |= FLASH_SR_EOP; 		//reset of EOP flag
 		GPIOA->ODR ^= 1<<5;
 	}
 }
